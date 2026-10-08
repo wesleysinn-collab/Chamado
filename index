@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal de Chamados</title>
+<style>
+:root{
+  --bg:#f4f5f7; --card:#ffffff; --ink:#1b2430; --muted:#667085; --line:#e3e6eb;
+  --brand:#0b6e4f; --brand-ink:#ffffff; --brand-soft:#e3f3ec;
+  --warn:#9a5b00; --warn-bg:#fff4dc; --warn-line:#f1d28a;
+  --field:#f9fafb; --shadow:0 1px 2px rgba(16,24,40,.06);
+}
+:root[data-theme=dark]{
+  color-scheme:dark;
+  --bg:#12161c; --card:#1a2028; --ink:#e8ecf1; --muted:#98a2b3; --line:#2b3440;
+  --brand:#3dbd8d; --brand-ink:#06261b; --brand-soft:#173a2e;
+  --warn:#f3c56b; --warn-bg:#3a2e12; --warn-line:#6b5420;
+  --field:#141a21; --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 16px 6px;max-width:1180px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-size:20px;margin:0}
+header span{color:var(--muted);font-size:13px}
+#tema{margin-left:auto;align-self:center;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 13px;font:inherit;font-size:13px;cursor:pointer}
+#tema:hover{border-color:var(--brand)}
+main{max-width:1180px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:start}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.card + .card{margin-top:16px}
+h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;font-weight:650}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+label:first-of-type{margin-top:0}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+textarea{min-height:110px;resize:vertical}
+#blocoSelf label{margin-top:12px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.row2{grid-template-columns:1fr}}
+
+/* busca de loja */
+.combo{position:relative}
+.sugg{position:absolute;z-index:10;left:0;right:0;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:280px;overflow:auto}
+.sugg button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink);padding:8px 11px;cursor:pointer;font:inherit}
+.sugg button:hover,.sugg button.on{background:var(--brand-soft)}
+.sugg small{color:var(--muted)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;font:inherit;font-size:13px}
+.chip:hover{border-color:var(--brand)}
+.chip[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:600}
+.selfs{display:flex;flex-wrap:wrap;gap:5px;max-height:150px;overflow:auto;padding:2px}
+.selfs .chip{min-width:40px;padding:5px 9px;text-align:center}
+.selfs .chip.flex{border-style:dashed}
+
+/* assunto */
+.assunto{display:flex;gap:8px;align-items:stretch}
+.assunto output{flex:1;display:block;background:var(--brand-soft);border:1px solid var(--brand);border-radius:8px;padding:11px 12px;font-weight:650;font-size:16px;word-break:break-word;min-height:44px}
+.assunto output.vazio{color:var(--muted);font-weight:400;border-style:dashed;background:var(--field);border-color:var(--line)}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:8px;font-weight:400}
+.check input{width:auto}
+
+/* linhas de dado + copiar */
+.dados{display:grid;gap:6px}
+.d{display:grid;grid-template-columns:96px 1fr auto;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field)}
+.d dt{font-size:12px;color:var(--muted);font-weight:600}
+.d dd{margin:0;font-weight:600;word-break:break-word;font-variant-numeric:tabular-nums}
+.d dd.vazio{color:var(--muted);font-weight:400;font-style:italic}
+.d.falta{border-color:var(--warn-line);background:var(--warn-bg)}
+.d.falta input{padding:5px 8px}
+.btn{border:1px solid var(--brand);background:var(--brand);color:var(--brand-ink);border-radius:7px;padding:5px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.08)}
+.btn.ok{background:var(--brand-soft);color:var(--brand);}
+.btn.ghost{background:transparent;color:var(--brand)}
+.btn[disabled]{opacity:.35;cursor:not-allowed}
+.titulo-loja{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.titulo-loja b{font-size:17px}
+.badge{font-size:11px;border-radius:999px;padding:2px 8px;background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-line);margin-left:6px;font-weight:600}
+.aviso{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn);border-radius:8px;padding:8px 11px;font-size:13px;margin-bottom:10px}
+.vazio-estado{color:var(--muted);text-align:center;padding:26px 8px}
+.sub{margin:16px 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:650}
+
+/* histórico */
+.hist{display:grid;gap:6px}
+.h{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--field);font-size:13px}
+.h span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linha-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.18s}
+#toast.show{opacity:1;transform:translateX(-50%)}
+</style>
+<script>
+(function(){var t=null;try{t=localStorage.getItem('tema');}catch(e){}
+if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})();
+</script>
+</head>
+<body>
+<header>
+  <h1>Portal de Abertura de Chamados</h1>
+  <span>Busque a loja e o self, copie os dados e cole no Softdesk.</span>
+  <button id="tema" type="button" aria-label="Alternar modo escuro"></button>
+</header>
+
+<main>
+  <!-- COLUNA ESQUERDA: preenchimento -->
+  <section>
+    <div class="card">
+      <h2>1 · Chamado</h2>
+
+      <label for="chamado">Nº do chamado (Softdesk)</label>
+      <input id="chamado" inputmode="numeric" autocomplete="off" placeholder="ex.: 123456">
+
+      <label for="busca">Loja</label>
+      <div class="combo">
+        <input id="busca" autocomplete="off" placeholder="Digite o nº da loja, cidade ou bairro" role="combobox" aria-expanded="false" aria-controls="sugg">
+        <div class="sugg" id="sugg" role="listbox" hidden></div>
+      </div>
+
+      <div id="blocoSelf" hidden>
+        <label>Self / PDV com problema <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+        <div class="selfs" id="selfs"></div>
+      </div>
+
+      <label>Tipo de equipamento</label>
+      <div class="chips" id="equip"></div>
+
+      <label for="defeito">Defeito</label>
+      <textarea id="defeito" placeholder="Descreva o problema…"></textarea>
+
+      <div class="linha-btns">
+        <button class="btn ghost" id="limpar" type="button">Limpar tudo</button>
+      </div>
+    </div>
+
+    <div class="card" id="cardHist" hidden>
+      <h2>Últimos chamados</h2>
+      <div class="hist" id="hist"></div>
+    </div>
+  </section>
+
+  <!-- COLUNA DIREITA: resultado -->
+  <section>
+    <div class="card">
+      <h2>2 · Assunto (automático)</h2>
+      <div class="assunto">
+        <output id="assunto" class="vazio">Preencha chamado, loja e equipamento</output>
+        <button class="btn" id="cpAssunto" type="button" disabled>Copiar</button>
+      </div>
+      <label class="check"><input type="checkbox" id="incSelf"> Incluir o nº do self no assunto</label>
+    </div>
+
+    <div class="card">
+      <h2>3 · Dados da loja</h2>
+      <div id="lojaBox"><div class="vazio-estado">Escolha uma loja para ver o endereço.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>4 · Dados do self</h2>
+      <div id="selfBox"><div class="vazio-estado">Escolha a loja e clique no nº do self.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Texto completo do chamado</h2>
+      <div class="hint" style="margin:-4px 0 8px">Tudo junto, pronto para colar na descrição.</div>
+      <textarea id="completo" readonly style="min-height:150px"></textarea>
+      <div class="linha-btns">
+        <button class="btn" id="cpTudo" type="button">Copiar texto completo</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="dados.js"></script>
+<script src="correcoes.js"></script>
+<script>
+const EQUIPAMENTOS = ["Scanner","Pinpad","Tela","Fonte","Régua","Balança","Balança de conferência","Tampa","Botão"];
+const $ = id => document.getElementById(id);
+
+// junta as correções manuais por cima da planilha
+const LOJA = {};
+LOJAS.forEach(l => { LOJA[l.n] = Object.assign({}, l, (typeof CORRECOES !== 'undefined' && CORRECOES[l.n]) || {}); });
+const SELFS_POR_LOJA = {};
+SELFS.forEach(s => (SELFS_POR_LOJA[s.loja] = SELFS_POR_LOJA[s.loja] || []).push(s));
+
+const estado = { loja:null, self:null, equip:null };
+const store = {
+  get(k, def){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch(e){ return def; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ---------- copiar ---------- */
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('show'),1400); }
+async function copiar(texto, btn){
+  texto = String(texto);
+  try{ await navigator.clipboard.writeText(texto); }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(_){}
+    ta.remove();
+  }
+  toast('Copiado: ' + (texto.length>40 ? texto.slice(0,40)+'…' : texto));
+  if(btn){ const o=btn.textContent; btn.textContent='✓ Copiado'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=o; btn.classList.remove('ok');},1200); }
+}
+
+/* ---------- linha de dado ---------- */
+function linha(rotulo, valor, opts={}){
+  const d=document.createElement('div'); d.className='d';
+  const dt=document.createElement('dt'); dt.textContent=rotulo;
+  const dd=document.createElement('dd');
+  const btn=document.createElement('button'); btn.type='button'; btn.className='btn'; btn.textContent='Copiar';
+  if(opts.editavel){
+    d.classList.add('falta');
+    const inp=document.createElement('input'); inp.placeholder='Não cadastrada — digite'; inp.value=valor||'';
+    inp.addEventListener('input',()=>{ opts.editavel(inp.value.trim()); btn.disabled=!inp.value.trim(); });
+    dd.appendChild(inp); btn.disabled=!valor;
+    btn.addEventListener('click',()=>copiar(inp.value.trim(),btn));
+  } else if(valor){
+    dd.textContent=valor;
+    if(opts.badge){ const b=document.createElement('span'); b.className='badge'; b.textContent=opts.badge; dd.appendChild(b); }
+    btn.addEventListener('click',()=>copiar(valor,btn));
+  } else {
+    dd.textContent=opts.vazio||'não informado'; dd.className='vazio'; btn.disabled=true;
+  }
+  d.append(dt,dd,btn); return d;
+}
+
+/* ---------- loja ---------- */
+function enderecoCompleto(l){
+  const rua=[l.logradouro,l.numero].filter(Boolean).join(', ');
+  const sala=l.sala?` (sala ${l.sala})`:'';
+  return [rua+sala,l.bairro,[l.cidade,l.uf].filter(Boolean).join('/'),l.cep?'CEP '+l.cep:''].filter(Boolean).join(' - ');
+}
+function renderLoja(){
+  const box=$('lojaBox'); box.innerHTML='';
+  const l=estado.loja; if(!l){ box.innerHTML='<div class="vazio-estado">Escolha uma loja para ver o endereço.</div>'; return; }
+  const t=document.createElement('div'); t.className='titulo-loja';
+  t.innerHTML=`<span><b>Loja ${l.n}</b> <span style="color:var(--muted)">· ${l.tipo}</span></span>`;
+  const bt=document.createElement('button'); bt.className='btn ghost'; bt.type='button'; bt.textContent='Copiar endereço completo';
+  bt.addEventListener('click',()=>copiar(enderecoCompleto(l),bt)); t.appendChild(bt);
+  box.appendChild(t);
+  if(!l.logradouro) { const a=document.createElement('div'); a.className='aviso'; a.textContent='Esta loja está sem endereço na planilha de cadastro.'; box.appendChild(a); }
+  const dl=document.createElement('dl'); dl.className='dados'; dl.style.margin=0;
+  dl.appendChild(linha('Logradouro',l.logradouro));
+  dl.appendChild(linha('Número',l.numero));
+  if(l.sala) dl.appendChild(linha('Sala',l.sala));
+  dl.appendChild(linha('Bairro',l.bairro));
+  if(l.cidade) dl.appendChild(linha('Cidade',l.cidade,{badge:l.origem==='inferida'?'inferida pelo CEP — conferir':''}));
+  else dl.appendChild(linha('Cidade','',{editavel:v=>{ l.cidade=v; salvarCidade(l.n,v); atualizarTexto(); }}));
+  dl.appendChild(linha('CEP',l.cep));
+  box.appendChild(dl);
+}
+function salvarCidade(n,v){ const m=store.get('cidades',{}); m[n]=v; store.set('cidades',m); }
+
+/* ---------- self ---------- */
+function renderChipsSelf(){
+  const lista=estado.loja?(SELFS_POR_LOJA[estado.loja.n]||[]):[];
+  $('blocoSelf').hidden=!estado.loja;
+  const c=$('selfs'); c.innerHTML='';
+  if(estado.loja && !lista.length){ c.innerHTML='<span class="hint">Nenhum self cadastrado para esta loja na planilha.</span>'; return; }
+  lista.forEach(s=>{
+    const b=document.createElement('button'); b.type='button'; b.className='chip'+(s.tipo==='Flex'?' flex':'');
+    b.textContent=s.pdv; b.title=(s.tipo==='Flex'?'PDV Flex ':'Self ')+s.pdv+(s.serie?' · série '+s.serie:'');
+    b.setAttribute('aria-pressed', estado.self===s);
+    b.addEventListener('click',()=>{ estado.self = estado.self===s ? null : s; renderChipsSelf(); renderSelf(); atualizar(); });
+    c.appendChild(b);
+  });
+}
+function renderSelf(){
+  const box=$('selfBox'); box.innerHTML=''; const s=estado.self;
+  if(!s){ box.innerHTML='<div class="vazio-estado">'+(estado.loja?'Clique no nº do self acima (opcional).':'Escolha a loja e clique no nº do self.')+'</div>'; return; }
+  if(s.tipo==='Flex'){ const a=document.createElement('div'); a.className='hint'; a.style.marginBottom='8px'; a.textContent='Este é um PDV Flex (não um self).'; box.appendChild(a); }
+  const dl=document.createElement('dl'); dl.className='dados'; dl.style.margin=0;
+  dl.appendChild(linha(s.tipo==='Flex'?'Nº do PDV':'Nº do self',String(s.pdv)));
+  dl.appendChild(linha('Nº de série',s.serie,{vazio:'série não informada na planilha'}));
+  dl.appendChild(linha('Bal. tamanho',s.bal,{vazio:'sem balança'}));
+  box.appendChild(dl);
+}
+
+/* ---------- busca de loja ---------- */
+const semAcento = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const INDICE = Object.values(LOJA).map(l=>({l, txt:semAcento(`${l.n} ${l.tipo} ${l.bairro} ${l.cidade}`)}));
+let sel=-1, achados=[];
+function sugerir(){
+  const q=semAcento($('busca').value.trim()); const box=$('sugg');
+  if(!q){ box.hidden=true; $('busca').setAttribute('aria-expanded','false'); return; }
+  achados=INDICE.filter(x=>String(x.l.n)===q).concat(INDICE.filter(x=>String(x.l.n)!==q && x.txt.includes(q))).slice(0,10).map(x=>x.l);
+  box.innerHTML=''; sel=achados.length?0:-1;
+  if(!achados.length){ box.innerHTML='<button type="button" disabled>Nenhuma loja encontrada</button>'; }
+  achados.forEach((l,i)=>{ const b=document.createElement('button'); b.type='button'; b.setAttribute('role','option'); if(i===0)b.className='on';
+    b.innerHTML=`<b>Loja ${l.n}</b> <small>${l.tipo} · ${l.bairro||'—'} · ${l.cidade||'cidade n/d'}</small>`;
+    b.addEventListener('mousedown',e=>{e.preventDefault(); escolherLoja(l);}); box.appendChild(b); });
+  box.hidden=false; $('busca').setAttribute('aria-expanded','true');
+}
+function escolherLoja(l){
+  estado.loja=l; estado.self=null; $('busca').value=`${l.n} — ${l.tipo}${l.cidade?' · '+l.cidade:''}`;
+  $('sugg').hidden=true; renderLoja(); renderChipsSelf(); renderSelf(); atualizar();
+}
+$('busca').addEventListener('input',()=>{ if(estado.loja){estado.loja=null;estado.self=null;renderLoja();renderChipsSelf();renderSelf();atualizar();} sugerir(); });
+$('busca').addEventListener('focus',e=>{ if(!estado.loja) sugerir(); else e.target.select(); });
+$('busca').addEventListener('blur',()=>{ $('sugg').hidden=true; });
+$('busca').addEventListener('keydown',e=>{
+  const bs=[...$('sugg').querySelectorAll('button')]; if($('sugg').hidden||!achados.length) return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); sel=(sel+(e.key==='ArrowDown'?1:-1)+achados.length)%achados.length; bs.forEach((b,i)=>b.classList.toggle('on',i===sel)); bs[sel].scrollIntoView({block:'nearest'}); }
+  if(e.key==='Enter'){ e.preventDefault(); escolherLoja(achados[Math.max(sel,0)]); }
+  if(e.key==='Escape'){ $('sugg').hidden=true; }
+});
+
+/* ---------- equipamento ---------- */
+EQUIPAMENTOS.forEach(nome=>{
+  const b=document.createElement('button'); b.type='button'; b.className='chip'; b.textContent=nome; b.setAttribute('aria-pressed','false');
+  b.addEventListener('click',()=>{ estado.equip = estado.equip===nome?null:nome;
+    [...$('equip').children].forEach(x=>x.setAttribute('aria-pressed', x.textContent===estado.equip)); atualizar(); });
+  $('equip').appendChild(b);
+});
+
+/* ---------- assunto e texto ---------- */
+function assunto(){
+  const ch=$('chamado').value.trim();
+  if(!ch||!estado.loja||!estado.equip) return '';
+  let a=`${ch} - LOJA ${estado.loja.n}`;
+  if($('incSelf').checked && estado.self) a+=` - ${estado.self.tipo==='Flex'?'FLEX':'SELF'} ${estado.self.pdv}`;
+  return a+` - ${estado.equip.toUpperCase()}`;
+}
+function textoCompleto(){
+  const L=[], l=estado.loja, s=estado.self, a=assunto();
+  if(a) L.push('Assunto: '+a);
+  if($('chamado').value.trim()) L.push('Chamado Softdesk: '+$('chamado').value.trim());
+  if(l){ L.push('Loja: '+l.n+' ('+l.tipo+')'); L.push('Endereço: '+enderecoCompleto(l)); }
+  if(s){ L.push((s.tipo==='Flex'?'PDV Flex nº: ':'Self nº: ')+s.pdv); if(s.serie) L.push('Nº de série: '+s.serie); if(s.bal) L.push('Balança: '+s.bal); }
+  if(estado.equip) L.push('Equipamento: '+estado.equip);
+  if($('defeito').value.trim()) L.push('Defeito: '+$('defeito').value.trim());
+  return L.join('\n');
+}
+function atualizarTexto(){ $('completo').value=textoCompleto(); }
+function atualizar(){
+  const a=assunto(); const o=$('assunto');
+  o.textContent=a||'Preencha chamado, loja e equipamento'; o.classList.toggle('vazio',!a); $('cpAssunto').disabled=!a;
+  atualizarTexto();
+}
+['chamado','defeito'].forEach(id=>$(id).addEventListener('input',atualizar));
+$('incSelf').addEventListener('change',atualizar);
+$('cpAssunto').addEventListener('click',e=>{ copiar(assunto(),e.target); guardarHist(); });
+$('cpTudo').addEventListener('click',e=>{ copiar(textoCompleto(),e.target); guardarHist(); });
+$('limpar').addEventListener('click',()=>{
+  $('chamado').value=''; $('defeito').value=''; $('busca').value=''; $('incSelf').checked=false;
+  estado.loja=null; estado.self=null; estado.equip=null;
+  [...$('equip').children].forEach(x=>x.setAttribute('aria-pressed','false'));
+  renderLoja(); renderChipsSelf(); renderSelf(); atualizar(); $('chamado').focus();
+});
+
+/* ---------- histórico (fica só neste navegador) ---------- */
+function guardarHist(){
+  const a=assunto(); if(!a) return;
+  let h=store.get('hist',[]).filter(x=>x.a!==a);
+  h.unshift({a, loja:estado.loja.n, pdv:estado.self?estado.self.pdv:null, tipo:estado.self?estado.self.tipo:null, equip:estado.equip, ch:$('chamado').value.trim(), def:$('defeito').value});
+  store.set('hist',h.slice(0,10)); renderHist();
+}
+function renderHist(){
+  const h=store.get('hist',[]); $('cardHist').hidden=!h.length; const box=$('hist'); box.innerHTML='';
+  h.forEach(x=>{
+    const d=document.createElement('div'); d.className='h'; const sp=document.createElement('span'); sp.textContent=x.a; sp.title=x.a;
+    const b=document.createElement('button'); b.type='button'; b.className='btn ghost'; b.textContent='Reabrir';
+    b.addEventListener('click',()=>{
+      $('chamado').value=x.ch; $('defeito').value=x.def||''; estado.equip=x.equip;
+      [...$('equip').children].forEach(c=>c.setAttribute('aria-pressed',c.textContent===x.equip));
+      escolherLoja(LOJA[x.loja]);
+      if(x.pdv!=null){ estado.self=(SELFS_POR_LOJA[x.loja]||[]).find(s=>s.pdv===x.pdv&&s.tipo===x.tipo)||null; renderChipsSelf(); renderSelf(); }
+      atualizar(); window.scrollTo({top:0,behavior:'smooth'});
+    });
+    d.append(sp,b); box.appendChild(d);
+  });
+}
+
+// cidades digitadas à mão neste navegador (só para lojas sem cidade na planilha)
+const cidadesLocais=store.get('cidades',{});
+Object.keys(cidadesLocais).forEach(n=>{ if(LOJA[n] && !LOJA[n].cidade && cidadesLocais[n]) LOJA[n].cidade=cidadesLocais[n]; });
+
+/* ---------- modo escuro ---------- */
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-theme',t);
+  $('tema').textContent = t==='dark' ? '☀️ Modo claro' : '🌙 Modo escuro';
+  try{ localStorage.setItem('tema',t); }catch(e){}
+}
+$('tema').addEventListener('click',()=>aplicarTema(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'));
+$('tema').textContent = document.documentElement.getAttribute('data-theme')==='dark' ? '☀️ Modo claro' : '🌙 Modo escuro';
+
+renderHist(); atualizar();
+</script>
+</body>
+</html>
