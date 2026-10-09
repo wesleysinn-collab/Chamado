@@ -36,6 +36,12 @@ input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--
 input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 textarea{min-height:110px;resize:vertical}
 #blocoSelf label{margin-top:12px}
+.rotulo{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:12px 0 5px}
+.rotulo label{margin:0}
+.fixo{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.fixo output{font-weight:650;word-break:break-all;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.opcao{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;margin:0;color:var(--muted);cursor:pointer}
+.opcao input{width:auto}
 .hint{font-size:12px;color:var(--muted);margin-top:4px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:480px){.row2{grid-template-columns:1fr}}
@@ -108,6 +114,14 @@ document.documentElement.setAttribute('data-theme',t);})();
   <!-- COLUNA ESQUERDA: preenchimento -->
   <section>
     <div class="card">
+      <h2>E-mail fixo</h2>
+      <div class="fixo">
+        <output id="emailFixo">ti.suporte@grupokochsa.com.br</output>
+        <button class="btn" id="cpEmail" type="button">Copiar</button>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>1 · Chamado</h2>
 
       <label for="chamado">Nº do chamado (Softdesk)</label>
@@ -127,7 +141,8 @@ document.documentElement.setAttribute('data-theme',t);})();
       <label>Tipo de equipamento</label>
       <div class="chips" id="equip"></div>
 
-      <label for="defeito">Defeito</label>
+      <div class="rotulo"><label for="defeito">Defeito</label>
+        <button class="btn" id="cpDefeito" type="button" disabled>Copiar defeito</button></div>
       <textarea id="defeito" placeholder="Descreva o problema…"></textarea>
 
       <div class="linha-btns">
@@ -153,7 +168,8 @@ document.documentElement.setAttribute('data-theme',t);})();
     </div>
 
     <div class="card">
-      <h2>3 · Dados da loja</h2>
+      <div class="rotulo" style="margin-top:0"><h2 style="margin:0">3 · Dados da loja</h2>
+        <label class="opcao"><input type="checkbox" id="semAcento" checked> Copiar sem acentos</label></div>
       <div id="lojaBox"><div class="vazio-estado">Escolha uma loja para ver o endereço.</div></div>
     </div>
 
@@ -207,6 +223,10 @@ async function copiar(texto, btn){
   if(btn){ const o=btn.textContent; btn.textContent='✓ Copiado'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=o; btn.classList.remove('ok');},1200); }
 }
 
+/* ---------- acentos ---------- */
+const tiraAcento = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const A = t => (t && $('semAcento').checked) ? tiraAcento(t) : t;
+
 /* ---------- linha de dado ---------- */
 function linha(rotulo, valor, opts={}){
   const d=document.createElement('div'); d.className='d';
@@ -230,10 +250,11 @@ function linha(rotulo, valor, opts={}){
 }
 
 /* ---------- loja ---------- */
+function ruaNumero(l){ return A([l.logradouro,l.numero].filter(Boolean).join(', ')); }
+function empresa(l){ return tiraAcento(l.tipo)+' '+l.n; }   // ex.: Komprao 54
 function enderecoCompleto(l){
-  const rua=[l.logradouro,l.numero].filter(Boolean).join(', ');
   const sala=l.sala?` (sala ${l.sala})`:'';
-  return [rua+sala,l.bairro,[l.cidade,l.uf].filter(Boolean).join('/'),l.cep?'CEP '+l.cep:''].filter(Boolean).join(' - ');
+  return [ruaNumero(l)+sala,A(l.bairro),[A(l.cidade),l.uf].filter(Boolean).join('/'),l.cep?'CEP '+l.cep:''].filter(Boolean).join(' - ');
 }
 function renderLoja(){
   const box=$('lojaBox'); box.innerHTML='';
@@ -245,11 +266,11 @@ function renderLoja(){
   box.appendChild(t);
   if(!l.logradouro) { const a=document.createElement('div'); a.className='aviso'; a.textContent='Esta loja está sem endereço na planilha de cadastro.'; box.appendChild(a); }
   const dl=document.createElement('dl'); dl.className='dados'; dl.style.margin=0;
-  dl.appendChild(linha('Logradouro',l.logradouro));
-  dl.appendChild(linha('Número',l.numero));
+  dl.appendChild(linha('Empresa',empresa(l)));
+  dl.appendChild(linha('Endereço',ruaNumero(l)));
   if(l.sala) dl.appendChild(linha('Sala',l.sala));
-  dl.appendChild(linha('Bairro',l.bairro));
-  if(l.cidade) dl.appendChild(linha('Cidade',l.cidade,{badge:l.origem==='inferida'?'inferida pelo CEP — conferir':''}));
+  dl.appendChild(linha('Bairro',A(l.bairro)));
+  if(l.cidade) dl.appendChild(linha('Cidade',A(l.cidade),{badge:l.origem==='inferida'?'inferida pelo CEP — conferir':''}));
   else dl.appendChild(linha('Cidade','',{editavel:v=>{ l.cidade=v; salvarCidade(l.n,v); atualizarTexto(); }}));
   dl.appendChild(linha('CEP',l.cep));
   box.appendChild(dl);
@@ -282,11 +303,11 @@ function renderSelf(){
 }
 
 /* ---------- busca de loja ---------- */
-const semAcento = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
-const INDICE = Object.values(LOJA).map(l=>({l, txt:semAcento(`${l.n} ${l.tipo} ${l.bairro} ${l.cidade}`)}));
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const INDICE = Object.values(LOJA).map(l=>({l, txt:norm(`${l.n} ${l.tipo} ${l.bairro} ${l.cidade}`)}));
 let sel=-1, achados=[];
 function sugerir(){
-  const q=semAcento($('busca').value.trim()); const box=$('sugg');
+  const q=norm($('busca').value.trim()); const box=$('sugg');
   if(!q){ box.hidden=true; $('busca').setAttribute('aria-expanded','false'); return; }
   achados=INDICE.filter(x=>String(x.l.n)===q).concat(INDICE.filter(x=>String(x.l.n)!==q && x.txt.includes(q))).slice(0,10).map(x=>x.l);
   box.innerHTML=''; sel=achados.length?0:-1;
@@ -330,7 +351,7 @@ function textoCompleto(){
   const L=[], l=estado.loja, s=estado.self, a=assunto();
   if(a) L.push('Assunto: '+a);
   if($('chamado').value.trim()) L.push('Chamado Softdesk: '+$('chamado').value.trim());
-  if(l){ L.push('Loja: '+l.n+' ('+l.tipo+')'); L.push('Endereço: '+enderecoCompleto(l)); }
+  if(l){ L.push('Empresa: '+empresa(l)); L.push('Endereço: '+enderecoCompleto(l)); }
   if(s){ L.push((s.tipo==='Flex'?'PDV Flex nº: ':'Self nº: ')+s.pdv); if(s.serie) L.push('Nº de série: '+s.serie); if(s.bal) L.push('Balança: '+s.bal); }
   if(estado.equip) L.push('Equipamento: '+estado.equip);
   if($('defeito').value.trim()) L.push('Defeito: '+$('defeito').value.trim());
@@ -343,6 +364,11 @@ function atualizar(){
   atualizarTexto();
 }
 ['chamado','defeito'].forEach(id=>$(id).addEventListener('input',atualizar));
+$('defeito').addEventListener('input',()=>{ $('cpDefeito').disabled=!$('defeito').value.trim(); });
+$('cpDefeito').addEventListener('click',e=>copiar($('defeito').value.trim(),e.target));
+$('cpEmail').addEventListener('click',e=>copiar($('emailFixo').textContent.trim(),e.target));
+$('semAcento').checked = store.get('semAcento', true);
+$('semAcento').addEventListener('change',()=>{ store.set('semAcento',$('semAcento').checked); renderLoja(); atualizarTexto(); });
 $('incSelf').addEventListener('change',atualizar);
 $('cpAssunto').addEventListener('click',e=>{ copiar(assunto(),e.target); guardarHist(); });
 $('cpTudo').addEventListener('click',e=>{ copiar(textoCompleto(),e.target); guardarHist(); });
@@ -350,7 +376,7 @@ $('limpar').addEventListener('click',()=>{
   $('chamado').value=''; $('defeito').value=''; $('busca').value=''; $('incSelf').checked=false;
   estado.loja=null; estado.self=null; estado.equip=null;
   [...$('equip').children].forEach(x=>x.setAttribute('aria-pressed','false'));
-  renderLoja(); renderChipsSelf(); renderSelf(); atualizar(); $('chamado').focus();
+  $('cpDefeito').disabled=true; renderLoja(); renderChipsSelf(); renderSelf(); atualizar(); $('chamado').focus();
 });
 
 /* ---------- histórico (fica só neste navegador) ---------- */
@@ -366,7 +392,7 @@ function renderHist(){
     const d=document.createElement('div'); d.className='h'; const sp=document.createElement('span'); sp.textContent=x.a; sp.title=x.a;
     const b=document.createElement('button'); b.type='button'; b.className='btn ghost'; b.textContent='Reabrir';
     b.addEventListener('click',()=>{
-      $('chamado').value=x.ch; $('defeito').value=x.def||''; estado.equip=x.equip;
+      $('chamado').value=x.ch; $('defeito').value=x.def||''; $('cpDefeito').disabled=!(x.def||'').trim(); estado.equip=x.equip;
       [...$('equip').children].forEach(c=>c.setAttribute('aria-pressed',c.textContent===x.equip));
       escolherLoja(LOJA[x.loja]);
       if(x.pdv!=null){ estado.self=(SELFS_POR_LOJA[x.loja]||[]).find(s=>s.pdv===x.pdv&&s.tipo===x.tipo)||null; renderChipsSelf(); renderSelf(); }
